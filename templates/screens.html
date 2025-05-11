@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="System Screen Capture">
+    <meta name="theme-color" content="#060911">
+    <title>{{ .PageTitle }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <!-- Prevent search engine indexing -->
+    <meta name="robots" content="noindex, nofollow">
+    <!-- Add favicon - helps disguise the app -->
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMGY1OGIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgMjJzOC00IDgtMTBWNWwtOC0zLTggM3Y3YzAgNiA4IDEwIDggMTB6Ij48L3BhdGg+PC9zdmc+">
+    <!-- Anti-fingerprinting measure -->
+    <script>
+        // Mask user agent and disable some browser features to make fingerprinting harder
+        if (navigator.userAgent) {
+            Object.defineProperty(navigator, 'userAgent', {
+                get: function() { return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'; }
+            });
+        }
+    </script>
+    <style>
+        .screens-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        
+        .screenshot-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .screenshot-display {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 2rem;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .screenshot-display img {
+            max-width: 100%;
+            border-radius: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .screenshot-placeholder {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        
+        .placeholder-icon {
+            color: var(--primary-muted);
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .control-btn:hover {
+            background-color: rgba(0, 255, 150, 0.1);
+            border-color: rgba(0, 255, 150, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .control-btn.primary {
+            background-color: rgba(0, 255, 150, 0.15);
+            border-color: rgba(0, 255, 150, 0.3);
+            color: var(--primary-color);
+        }
+        
+        .control-btn.primary:hover {
+            background-color: rgba(0, 255, 150, 0.25);
+        }
+        
+        .screenshot-history {
+            margin-top: 2rem;
+        }
+        
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .history-item {
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .history-item:hover {
+            transform: scale(1.03);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            border-color: rgba(0, 255, 150, 0.2);
+        }
+        
+        .history-thumbnail {
+            width: 100%;
+            height: 150px;
+            background-color: #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+        
+        .history-info {
+            padding: 0.8rem;
+        }
+        
+        .history-timestamp {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .history-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .history-btn {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .history-btn:hover {
+            background-color: rgba(0, 255, 150, 0.1);
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logo-icon">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <circle cx="12" cy="11" r="4" stroke-dasharray="5 3" fill="rgba(0,245,139,0.15)"></circle>
+                    <path d="M12 7v4"></path>
+                    <path d="M10 11h4"></path>
+                    <path d="M4 5v7" stroke-dasharray="4 2" opacity="0.7"></path>
+                    <path d="M20 5v7" stroke-dasharray="4 2" opacity="0.7"></path>
+                </svg>
+                <span>ZLT<sup style="font-size: 0.5em; vertical-align: super; opacity: 0.8;">™</sup> <small style="font-size: 0.65em; opacity: 0.8; margin-left: 3px; font-weight: normal;">Advanced Enterprise</small></span>
+            </div>
+            <div class="connection-status">
+                {{ if .PublicURL }}
+                <div class="status-indicator online"></div>
+                <span class="status-text">Secured</span>
+                <span class="public-url" onclick="navigator.clipboard.writeText('{{ .PublicURL }}').then(() => { showToast('URL copied to clipboard!'); })">{{ .PublicURL }}</span>
+                {{ else }}
+                <div class="status-indicator offline"></div>
+                <span class="status-text">Local Only</span>
+                {{ end }}
+            </div>
+        </header>
+        
+        <nav>
+            <ul>
+                <li>
+                    <a href="/">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-activity"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/filesystem">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        <span class="nav-text">Files</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/network">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-globe"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        <span class="nav-text">Network</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/terminal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-terminal"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                        <span class="nav-text">Terminal</span>
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="/screens">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-camera"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        <span class="nav-text">Screens</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- Toast notification system -->
+        <div id="toast-container"></div>
+        
+        <main>
+            <div class="screens-container">
+                <div class="panel">
+                    <h2>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-camera"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        Screen Capture
+                    </h2>
+                    <div class="screenshot-area">
+                        <div class="controls">
+                            <button id="captureBtn" class="enhanced-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-camera"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                                Capture Screenshot
+                            </button>
+                            <button id="recordBtn" class="enhanced-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-video"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                                Record Screen
+                            </button>
+                            <button id="downloadBtn" class="enhanced-btn" disabled>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Download
+                            </button>
+                        </div>
+                        
+                        <div id="screenshotDisplay" class="screenshot-display">
+                            <div class="screenshot-placeholder">
+                                <div class="placeholder-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-image"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                </div>
+                                <p>No screenshot captured yet</p>
+                                <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto;">
+                                    Click "Capture Screenshot" to take a snapshot of the system's current display
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel screenshot-history">
+                    <h2>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        Screenshot History
+                    </h2>
+                    <div id="historyGrid" class="history-grid">
+                        <div class="history-item placeholder">
+                            <div class="history-thumbnail">No history available</div>
+                            <div class="history-info">
+                                <div class="history-timestamp">Feature under development</div>
+                                <div class="history-actions">
+                                    <button class="enhanced-btn history-btn" disabled>View</button>
+                                    <button class="enhanced-btn history-btn" disabled>Download</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <div class="footer-info">
+                <span>ZLT™ Advanced Enterprise v{{ .Version }}</span>
+                <span id="uptime">Uptime: Calculating...</span>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize toast notification system
+            function showToast(message) {
+                const toast = document.createElement('div');
+                toast.classList.add('toast');
+                toast.textContent = message;
+                
+                const container = document.getElementById('toast-container');
+                container.appendChild(toast);
+                
+                // Remove toast after animation completes
+                setTimeout(() => {
+                    toast.remove();
+                }, 3500);
+            }
+            
+            // Make it available globally
+            window.showToast = showToast;
+            
+            const captureBtn = document.getElementById('captureBtn');
+            const recordBtn = document.getElementById('recordBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const screenshotDisplay = document.getElementById('screenshotDisplay');
+            
+            // Capture screenshot action
+            captureBtn.addEventListener('click', function() {
+                showToast('Capturing screenshot...');
+                
+                fetch('/api/screenshot', {
+                    method: 'POST',
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Screenshot captured successfully!');
+                        
+                        // Display the screenshot
+                        screenshotDisplay.innerHTML = `<img src="${data.url}" alt="Screenshot">`;
+                        downloadBtn.disabled = false;
+                    } else {
+                        showToast('Screenshot functionality is under development');
+                        screenshotDisplay.innerHTML = `
+                            <div class="screenshot-placeholder">
+                                <div class="placeholder-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-circle"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                </div>
+                                <p>Screenshot functionality is under development</p>
+                                <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto;">
+                                    This feature will be available in a future update
+                                </p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    showToast('Error: ' + error.message);
+                });
+            });
+            
+            // Record screen action
+            recordBtn.addEventListener('click', function() {
+                showToast('Screen recording functionality is under development');
+            });
+            
+            // Initialize icons
+            feather.replace();
+        });
+    </script>
+</body>
+</html>

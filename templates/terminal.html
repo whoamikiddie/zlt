@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="System Terminal">
+    <meta name="theme-color" content="#060911">
+    <title>{{ .PageTitle }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <!-- Prevent search engine indexing -->
+    <meta name="robots" content="noindex, nofollow">
+    <!-- Add favicon - helps disguise the app -->
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMGY1OGIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgMjJzOC00IDgtMTBWNWwtOC0zLTggM3Y3YzAgNiA4IDEwIDggMTB6Ij48L3BhdGg+PC9zdmc+">
+    <!-- Anti-fingerprinting measure -->
+    <script>
+        // Mask user agent and disable some browser features to make fingerprinting harder
+        if (navigator.userAgent) {
+            Object.defineProperty(navigator, 'userAgent', {
+                get: function() { return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'; }
+            });
+        }
+    </script>
+    <style>
+        .terminal-container {
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: var(--panel-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            height: 70vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .terminal-output {
+            flex: 1;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .terminal-form {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .terminal-input {
+            flex: 1;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 0.7rem 1rem;
+            color: var(--text-primary);
+            font-family: 'Fira Code', monospace;
+        }
+        
+        .terminal-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 1px var(--primary-color);
+        }
+        
+        .terminal-button {
+            background-color: rgba(0, 255, 150, 0.2);
+            color: var(--primary-color);
+            border: 1px solid rgba(0, 255, 150, 0.3);
+            border-radius: 6px;
+            padding: 0.7rem 1.5rem;
+            cursor: pointer;
+            font-family: 'Fira Code', monospace;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .terminal-button:hover {
+            background-color: rgba(0, 255, 150, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .terminal-output .command {
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .terminal-output .output {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+        
+        .terminal-output .error {
+            color: var(--danger-color);
+        }
+        
+        .terminal-output .term-error {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .terminal-output .term-success {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .terminal-output .timestamp {
+            color: #999;
+            font-size: 0.8em;
+            margin-right: 8px;
+        }
+
+        .terminal-output .terminal-link {
+            color: #3498db;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .terminal-output .terminal-link:hover {
+            text-decoration: none;
+            color: #2980b9;
+        }
+
+        .terminal-output .cmd-text {
+            color: #f1c40f;
+        }
+        
+        /* Add typing animation for terminal */
+        @keyframes cursor-blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        .cursor-blink {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background-color: var(--primary-color);
+            animation: cursor-blink 1s infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-shield"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>SHADOW</span>
+            </div>
+            <div class="connection-status">
+                {{ if .PublicURL }}
+                <div class="status-indicator online"></div>
+                <span class="status-text">Secured</span>
+                <span class="public-url" onclick="navigator.clipboard.writeText('{{ .PublicURL }}').then(() => { showToast('URL copied to clipboard!'); })">{{ .PublicURL }}</span>
+                {{ else }}
+                <div class="status-indicator offline"></div>
+                <span class="status-text">Local Only</span>
+                {{ end }}
+            </div>
+        </header>
+        
+        <nav>
+            <ul>
+                <li>
+                    <a href="/">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-activity"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/filesystem">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        <span class="nav-text">Files</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/network">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-globe"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        <span class="nav-text">Network</span>
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="/terminal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-terminal"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                        <span class="nav-text">Terminal</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/screens">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-camera"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        <span class="nav-text">Screens</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- Toast notification system -->
+        <div id="toast-container"></div>
+        
+        <main>
+            <div class="panel">
+                <h2>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-terminal"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                    Remote Terminal
+                </h2>
+                <div class="terminal-container">
+                    <div id="terminalOutput" class="terminal-output">
+                        <div class="welcome">
+                            <span style="color: var(--primary-color); font-weight: bold;">ZLT™ Advanced Enterprise Terminal v2.1</span>
+                            <br>
+                            <div style="display: flex; align-items: center; margin: 5px 0; color: var(--text-secondary);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                <span>Secure Shell Access - Licensed for Enterprise Use</span>
+                            </div>
+                            <span style="color: #3498db;">[ Enhanced Security Edition ]</span>
+                            <br>
+                            <span>Type 'help' for available commands</span>
+                            <br>
+                            <span style="color: var(--primary-muted); font-size: 0.9em;">Up/Down arrows for command history</span>
+                            <br><br>
+                            <div class="typing-effect">
+                                <span style="color: var(--primary-muted);">Ready</span><span class="cursor-blink"></span>
+                            </div>
+                            <br>
+                        </div>
+                    </div>
+                    <form id="terminalForm" class="terminal-form">
+                        <input type="text" id="commandInput" class="terminal-input" placeholder="Enter command..." autocomplete="off" autofocus>
+                        <button type="submit" class="terminal-button">Execute</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <div class="footer-info">
+                <span>Shadow System Utility v{{ .Version }}</span>
+                <span id="uptime">Uptime: Calculating...</span>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize toast notification system
+            function showToast(message) {
+                const toast = document.createElement('div');
+                toast.classList.add('toast');
+                toast.textContent = message;
+                
+                const container = document.getElementById('toast-container');
+                container.appendChild(toast);
+                
+                // Remove toast after animation completes
+                setTimeout(() => {
+                    toast.remove();
+                }, 3500);
+            }
+            
+            // Make it available globally
+            window.showToast = showToast;
+            
+            const terminalOutput = document.getElementById('terminalOutput');
+            const commandInput = document.getElementById('commandInput');
+            const terminalForm = document.getElementById('terminalForm');
+            
+            // Command history functionality
+            const commandHistory = [];
+            let historyIndex = -1;
+            
+            // Terminal command execution
+            terminalForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const command = commandInput.value.trim();
+                if (!command) return;
+                
+                // Add to history
+                commandHistory.push(command);
+                historyIndex = commandHistory.length;
+                
+                // Display command
+                const commandElement = document.createElement('div');
+                commandElement.classList.add('command');
+                commandElement.textContent = '$ ' + command;
+                terminalOutput.appendChild(commandElement);
+                
+                // Clear input
+                commandInput.value = '';
+                
+                // Handle help command locally
+                if (command.toLowerCase() === 'help') {
+                    const helpElement = document.createElement('div');
+                    helpElement.classList.add('output');
+                    helpElement.innerHTML = `
+                        <span style="color: var(--primary-color); font-weight: bold;">Available Commands:</span><br>
+                        <span style="color: var(--primary-muted);">SYSTEM COMMANDS:</span>
+                        - Any system command (e.g., ls, ps, whoami, ifconfig, etc.)<br>
+                        
+                        <span style="color: var(--primary-muted);">TERMINAL CONTROLS:</span>
+                        - <span style="color: var(--accent-color);">help</span>: Show this help message
+                        - <span style="color: var(--accent-color);">clear</span>: Clear the terminal
+                        - <span style="color: var(--accent-color);">history</span>: Show command history
+                        
+                        <span style="color: var(--primary-muted);">NAVIGATION:</span>
+                        - Use <span style="color: var(--accent-color);">UP/DOWN ARROW</span> keys to cycle through command history
+                        
+                        <span style="color: var(--primary-muted);">SECURITY:</span>
+                        - Certain destructive commands are blocked for system safety
+                        - Sensitive operations trigger security notifications
+                    `;
+                    terminalOutput.appendChild(helpElement);
+                    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                    return;
+                }
+                
+                // Handle clear command locally
+                if (command.toLowerCase() === 'clear') {
+                    terminalOutput.innerHTML = '';
+                    return;
+                }
+                
+                // Handle history command locally
+                if (command.toLowerCase() === 'history') {
+                    const historyElement = document.createElement('div');
+                    historyElement.classList.add('output');
+                    
+                    if (commandHistory.length > 0) {
+                        let historyText = '<span style="color: var(--primary-color); font-weight: bold;">Command History:</span><br>';
+                        
+                        // Get last 20 commands
+                        const historyCount = Math.min(commandHistory.length, 20);
+                        for (let i = 0; i < historyCount; i++) {
+                            const historyCmd = commandHistory[commandHistory.length - historyCount + i];
+                            historyText += `<span style="color: var(--primary-muted);">${i+1}.</span> ${historyCmd}<br>`;
+                        }
+                        
+                        historyElement.innerHTML = historyText;
+                    } else {
+                        historyElement.textContent = 'No command history available';
+                    }
+                    
+                    terminalOutput.appendChild(historyElement);
+                    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                    return;
+                }
+                
+                // Send command to server
+                fetch('/api/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ command: command })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const outputElement = document.createElement('div');
+                    
+                    if (data.success) {
+                        outputElement.classList.add('output');
+                        outputElement.textContent = data.output || '(No output)';
+                    } else {
+                        outputElement.classList.add('output', 'error');
+                        outputElement.textContent = data.error || 'Command execution failed';
+                    }
+                    
+                    terminalOutput.appendChild(outputElement);
+                    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                })
+                .catch(error => {
+                    const errorElement = document.createElement('div');
+                    errorElement.classList.add('output', 'error');
+                    errorElement.textContent = 'Network error: ' + error.message;
+                    terminalOutput.appendChild(errorElement);
+                    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                });
+            });
+            
+            // Command history navigation
+            commandInput.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowUp') {
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        commandInput.value = commandHistory[historyIndex];
+                    }
+                    e.preventDefault();
+                } else if (e.key === 'ArrowDown') {
+                    if (historyIndex < commandHistory.length - 1) {
+                        historyIndex++;
+                        commandInput.value = commandHistory[historyIndex];
+                    } else {
+                        historyIndex = commandHistory.length;
+                        commandInput.value = '';
+                    }
+                    e.preventDefault();
+                }
+            });
+            
+            // Initialize icons
+            feather.replace();
+        });
+    </script>
+</body>
+</html>
